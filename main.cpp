@@ -150,8 +150,14 @@ auto countTermOccurrences = [](const vector<string>& words, const vector<string>
 
 // calculate single term density based on single term and windowSize
 auto calculateSingleTermDensity = [](const string& word, const map<string, int>& termCount, int windowSize) {
-    // retrieve count of occurences for given term in termCount
-    return termCount.at(word) / static_cast<double>(windowSize); // Divide count by windowSize -> result is term density for single term
+    auto it = termCount.find(word);
+    if (it != termCount.end()) { 
+        // if term is found in map -> return density of term
+        // it->second = occurences divided by windowSize
+        return it->second / static_cast<double>(windowSize);
+    } else {
+        return 0.0;
+    }
 };
 
 // calculates term density for each term using singleTermDesnity and store res in termDensity map
@@ -169,7 +175,7 @@ auto calculateTermDensity = [](const vector<string>& words, const map<string, in
 // wrapper that combines term cound calculation and term density calculation
 auto calculateTermDensityWrapper = [](const vector<string>& words, const vector<string>& termList, int windowSize) {
     map<string, int> termCount = countTermOccurrences(words, termList); // obtain term count
-    return calculateTermDensity(words, termCount, windowSize);// return density
+    return calculateTermDensity(words, termCount, windowSize); // return density
 };
 
 
@@ -198,7 +204,7 @@ int main()
     vector<string> chapterCategories;
 
     for(const auto& chapter : chapters){
-        auto warTermDensity = calculateTermDensityWrapper(chapter, peaceTerms, windowSize);
+        auto warTermDensity = calculateTermDensityWrapper(chapter, warTerms, windowSize);
         auto peaceTermDensity = calculateTermDensityWrapper(chapter, peaceTerms, windowSize);
 
         // calc total density for each war or peace-related shit
