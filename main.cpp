@@ -140,7 +140,7 @@ auto mapCountOccurrences = [](const vector<string> &words) -> vector<pair<string
         mappedResults.push_back({word, 1});
     }
     return mappedResults;
-};
+
 
 // Task 5: Reduce function for counting occurrences
 auto reduceCountOccurrences = [](const vector<pair<string, int>> &mappedResults) -> map<string, int>
@@ -223,6 +223,7 @@ auto calculateTermDensity = [](const vector<string> &words, const map<string, in
 };
 
 // calculate single term density based on single term and windowSize
+
 auto calculateSingleTermDensity = [](const string &word, const map<string, int> &termCount, const int windowSize)
 {
     auto it = termCount.find(word);
@@ -245,6 +246,25 @@ auto printResults = [](const vector<string> &results)
              {
         cout << "Chapter " << i << ": " << chapter << endl;
         ++i; });
+};
+
+=======
+// calculates term density for each term using singleTermDesnity and store res in termDensity map
+auto calculateTermDensity = [](const vector<string>& words, const map<string, int>& termCount, const int windowSize) {
+    map<string, double> termDensity;
+
+    transform(words.begin(), words.end(), inserter(termDensity, termDensity.begin()),
+              [&termCount, windowSize](const string& word) {
+                  return make_pair(word, calculateSingleTermDensity(word, termCount, windowSize)); // making the pair for each term with density
+              });
+ 
+    return termDensity; // returns map with term and its density
+};
+
+// wrapper that combines term count calculation and term density calculation
+auto calculateTermDensityWrapper = [](const vector<string>& words, const vector<string>& termList, const int windowSize) {
+    map<string, int> termCount = countTermOccurrences(words, termList); // obtain term count
+    return calculateTermDensity(words, termCount, windowSize); // return density
 };
 
 int main()
