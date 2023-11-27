@@ -10,7 +10,15 @@
 #include <future>
 #include <set>
 
+
+
 using namespace std;
+
+struct ChapterResult
+{
+    int chapterIndex;
+    string category;
+};
 
 const string PEACE_TERMS_PATH = "./textfiles/peace_terms.txt";
 const string WAR_TERMS_PATH = "./textfiles/war_terms.txt";
@@ -256,47 +264,62 @@ int main()
     auto chapters = splitIntoChapters(tokenizeStringIntoWords(contentBook, delimiters));
 
     // Step 7: Map-reduce for counting occurrences
-    mutex termCountMutex;       // Declare a mutex for termCount
-    map<string, int> termCount; // Declare termCount map
+    std::mutex termCountMutex;       // Declare a mutex for termCount
+    std::map<std::string, int> termCount; // Declare termCount map
 
     auto mappedOccurrences = mapCountOccurrences(contentBook);
     {
-        lock_guard<mutex> lock(termCountMutex); // Lock the mutex during the critical section
+        std::lock_guard<std::mutex> lock(termCountMutex); // Lock the mutex during the critical section
         termCount = reduceCountOccurrences(mappedOccurrences);
     }
 
-    vector<string> chapterCategories;
+    std::vector<std::future<ChapterResult>> chapterResults;
 
-    for_each(chapters.begin(), chapters.end(), [&](auto chapter)
+    for (size_t i = 0; i < chapters.size(); ++i)
     {
-        // Step 8: Map
-        auto mappedWarTermDensity = mapCalculateTermDensity(chapter, termCount, windowSize, warTerms);
-        auto mappedPeaceTermDensity = mapCalculateTermDensity(chapter, termCount, windowSize, peaceTerms);
+        auto processChapter = [i, &chapters, &termCount, &warTerms, &peaceTerms, windowSize]() -> ChapterResult {
+            // Map
+            auto mappedWarTermDensity = mapCalculateTermDensity(chapters[i], termCount, windowSize, warTerms);
+            auto mappedPeaceTermDensity = mapCalculateTermDensity(chapters[i], termCount, windowSize, peaceTerms);
 
-        // Step 8: Reduce
-        auto warTermDensity = reduceCalculateTermDensity(mappedWarTermDensity);
-        auto peaceTermDensity = reduceCalculateTermDensity(mappedPeaceTermDensity);
+            // Reduce
+            auto warTermDensity = reduceCalculateTermDensity(mappedWarTermDensity);
+            auto peaceTermDensity = reduceCalculateTermDensity(mappedPeaceTermDensity);
 
-        double warDensity = accumulate(warTermDensity.begin(), warTermDensity.end(), 0.0,
-                                       [](double acc, const auto &pair)
-                                       { return acc + pair.second; });
+            double warDensity = std::accumulate(warTermDensity.begin(), warTermDensity.end(), 0.0,
+                                               [](double acc, const auto &pair)
+                                               { return acc + pair.second; });
 
-        double peaceDensity = accumulate(peaceTermDensity.begin(), peaceTermDensity.end(), 0.0,
-                                         [](double acc, const auto &pair)
-                                         { return acc + pair.second; });
+            double peaceDensity = std::accumulate(peaceTermDensity.begin(), peaceTermDensity.end(), 0.0,
+                                                 [](double acc, const auto &pair)
+                                                 { return acc + pair.second; });
 
-        if (warDensity > peaceDensity)
-        {
-            chapterCategories.push_back("war-related");
-        }
-        else
-        {
-            chapterCategories.push_back("peace-related");
-        }
+            // Decide chapter category
+            std::string category = (warDensity > peaceDensity) ? "war-related" : "peace-related";
+
+            return {static_cast<int>(i), category};
+        };
+
+        chapterResults.push_back(std::async(std::launch::async, processChapter));
+    }
+
+    // Wait for all futures to be ready and collect results
+    std::vector<ChapterResult> results;
+    for (auto &future : chapterResults)
+    {
+        results.push_back(future.get());
+    }
+
+    // Sort results based on chapter index
+    std::sort(results.begin(), results.end(), [](const auto &a, const auto &b) {
+        return a.chapterIndex < b.chapterIndex;
     });
 
-    // Step 10: Print results
-    printResults(chapterCategories);
+    // Print results
+    for (const auto &result : results)
+    {
+        std::cout << "Chapter " << result.chapterIndex + 1 << ": " << result.category << std::endl;
+    }
 
     return 0;
 }
