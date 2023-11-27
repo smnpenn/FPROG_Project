@@ -32,8 +32,10 @@ auto readFileAsVector = [](const string &filename)
 
     if (file.is_open())
     {
-        for_each(istream_iterator<string>(file), istream_iterator<string>(), [&content](const string &line)
-                 { content.push_back(line); });
+        for_each(istream_iterator<string>(file), istream_iterator<string>(), [&content](const string &word)
+        {  
+            content.push_back(word); 
+        });
     }
     else
     {
@@ -54,10 +56,9 @@ auto tokenizeStringIntoWords = [](const vector<string> input, const string &deli
     vector<string> tokens;
     string token;
 
-    // Is this loop ok?
-    for (const string &str : input)
+    for_each(input.begin(), input.end(), [&](auto str)
     {
-        for (char ch : str)
+        for_each(str.begin(), str.end(), [&](auto ch)
         {
             if (isDelimiter(delimiters, ch))
             {
@@ -71,7 +72,7 @@ auto tokenizeStringIntoWords = [](const vector<string> input, const string &deli
             {
                 token += ch;
             }
-        }
+        });
 
         // Add the last token if not empty
         if (!token.empty())
@@ -80,8 +81,8 @@ auto tokenizeStringIntoWords = [](const vector<string> input, const string &deli
         }
 
         token.clear(); // Clear token for the next string in the input vector
-    }
-
+    });
+    
     return tokens;
 };
 
@@ -235,6 +236,7 @@ auto calculateSingleTermDensity = [](const string &word, const map<string, int> 
     }
 };
 */
+
 auto printResults = [](const vector<string> &results)
 {
     int i = 1;
