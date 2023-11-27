@@ -109,55 +109,52 @@ auto tokenizeStringIntoWords = [](const vector<string> input, const string& deli
     return tokens;
 };
 
-/*
-// Task 5: Count occurrences
-auto countOccurrences = [](const vector<string>& words) -> map<string, int>{
-    return accumulate(words.begin(), words.end(), map<string, int>{}, [](auto& accu, const string& word) {
-        accu[word]++;
-        return accu;
-    });
-};
-*/
-
-// Task 6: Calculate Term Density
-// Counts occurences of each word in set words
-
-auto countTermOccurrences = [](const vector<string>& words, const vector<string>& termList) {
-    // Checks if each word in vector is present in termList
-    return accumulate(words.begin(), words.end(), map<string, int>{}, [&termList](auto& acc, const string& word) {
-        if (find(termList.begin(), termList.end(), word) != termList.end()) {
-            // if word present ->  increment count for term in map
-            acc[word]++;
-        }
-        return acc;
-    });
-};
-
-// calculate single term density based on single term and windowSize
-auto calculateSingleTermDensity = [](const string& word, const map<string, int>& termCount, int windowSize) {
-    auto it = termCount.find(word);
-    if (it != termCount.end()) { 
-        // if term is found in map -> return density of term
-        // it->second = occurences divided by windowSize
-        return it->second / static_cast<double>(windowSize);
-    } else {
-        return 0.0;
+auto mapCountOccurrences = [](const vector<string> &words) -> vector<pair<string, int>>
+{
+    vector<pair<string, int>> mappedResults;
+    for (const string &word : words)
+    {
+        mappedResults.push_back({word, 1});
     }
+    return mappedResults;
 };
 
-// calculates term density for each term using singleTermDesnity and store res in termDensity map
-auto calculateTermDensity = [](const vector<string>& words, const map<string, int>& termCount, int windowSize) {
-    map<string, double> termDensity;
-
-    transform(words.begin(), words.end(), inserter(termDensity, termDensity.begin()),
-              [&termCount, windowSize](const string& word) {
-                  return make_pair(word, calculateSingleTermDensity(word, termCount, windowSize)); // making the pair for each term with density
-              });
- 
-    return termDensity; // returns map with term and its density
+auto reduceCountOccurrences = [](const vector<pair<string, int>> &mappedResults) -> map<string, int>
+{
+    map<string, int> result;
+    for (const auto &pair : mappedResults)
+    {
+        result[pair.first] += pair.second;
+    }
+    return result;
 };
 
 
+auto mapCalculateTermDensity = [](const vector<string> &words, const map<string, int> &termCount, const int windowSize, const vector<string> &termList) -> vector<pair<string, double>>
+{
+    set<string> termSet(termList.begin(), termList.end()); // Convert termList to a set for faster lookup
+    vector<pair<string, double>> mappedResults;
+
+    for (const string &word : words)
+    {
+        auto termIt = termCount.find(word);
+        if (termIt != termCount.end() && termSet.find(word) != termSet.end())
+        {
+            mappedResults.push_back({word, 1.0 / windowSize});
+        }
+    }
+    return mappedResults;
+};
+
+auto reduceCalculateTermDensity = [](const vector<pair<string, double>> &mappedResults) -> map<string, double>
+{
+    map<string, double> result;
+    for (const auto &pair : mappedResults)
+    {
+        result[pair.first] += pair.second;
+    }
+    return result;
+};
 
 TEST_CASE("Read file"){
 
@@ -189,35 +186,10 @@ TEST_CASE("Tokenize string into words"){
     CHECK_EQ(tokens[7], "ignored");
 }
 
-TEST_CASE("Count term occurrences"){
-    string delimiters = " ;.!-_+?,\"/()[]*:~'";
-    vector<string> tokens = tokenizeStringIntoWords({"Hallo das ist ein Hallo und ein Hallo"}, delimiters);
-    vector<string> wordList = {"Hallo", "das", "ein"};
-
-    auto wordOcc = countTermOccurrences(tokens, wordList);
-
-    CHECK_EQ(wordOcc["Hallo"], 3);
-    CHECK_EQ(wordOcc["das"], 1);
-    CHECK_EQ(wordOcc["ein"], 2);
-}
-
-TEST_CASE("Calculate term density"){
-    string delimiters = " ;.!-_+?,\"/()[]*:~'";
-    vector<string> tokens1 = tokenizeStringIntoWords({"Hallo das ist ein Hallo und ein Hallo"}, delimiters);
-    vector<string> tokens2 = tokenizeStringIntoWords({"Hallo das hat das nicht das eine so große Density"}, delimiters);
-    vector<string> wordList = {"Hallo", "das", "ein"};
-
-    auto tokens1Dens = calculateTermDensity(tokens1, countTermOccurrences(tokens1, wordList), 5);
-    auto tokens2Dens = calculateTermDensity(tokens2, countTermOccurrences(tokens2, wordList), 5);
-
-    CHECK_LT(tokens2Dens["Hallo"], tokens1Dens["Hallo"]);
-    CHECK_LT(tokens1Dens["das"], tokens2Dens["das"]);
-    CHECK_LT(tokens2Dens["ein"], tokens1Dens["ein"]);
-}
-
 TEST_CASE("Split into chapters"){
 
     auto chapters = splitIntoChapters(readFileAsVector("./textfiles/war_and_peace.txt"));
 
     CHECK_EQ(chapters.size(), 365);
 }
+

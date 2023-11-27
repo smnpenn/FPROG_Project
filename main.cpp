@@ -19,6 +19,11 @@ const string WAR_AND_PEACE_PATH = "./textfiles/war_and_peace.txt";
 // special characters to ignore
 const string delimiters = " ;.!-_+?,\"/()[]*:~'";
 
+auto printError = [](const string msg)
+{
+    cerr << msg << endl;
+};
+
 // Read file as Vector
 auto readFileAsVector = [](const string &filename)
 {
@@ -32,7 +37,7 @@ auto readFileAsVector = [](const string &filename)
     }
     else
     {
-        cerr << "ERR: Unable to open file!" << endl;
+        printError("ERR: Unable to open file!");
     }
 
     return content;
@@ -120,36 +125,25 @@ auto splitIntoChapters = [](const vector<string> bookContent)
     return chapters;
 };
 
-// Task 4: Filter words
-auto filterWords = [](const vector<string> &words, const vector<string> &filterList)
-{
-    vector<string> filteredWords;
-    // copies all elements in the range [first, last] starting from first and proceeding to last.
-    copy_if(words.begin(), words.end(), back_inserter(filteredWords), [&filterList](const string &word)
-            { return find(filterList.begin(), filterList.end(), word) != filterList.end(); });
-    return filteredWords;
-    // Functional approach weil ich eigentlich nicht den state verändere?
-};
-
 // Task 5: Map function for counting occurrences
 auto mapCountOccurrences = [](const vector<string> &words) -> vector<pair<string, int>>
 {
     vector<pair<string, int>> mappedResults;
-    for (const string &word : words)
+    for_each(words.begin(), words.end(), [&](auto word)
     {
         mappedResults.push_back({word, 1});
-    }
+    });
     return mappedResults;
-
+};
 
 // Task 5: Reduce function for counting occurrences
 auto reduceCountOccurrences = [](const vector<pair<string, int>> &mappedResults) -> map<string, int>
 {
     map<string, int> result;
-    for (const auto &pair : mappedResults)
+    for_each(mappedResults.begin(), mappedResults.end(), [&](auto pair)
     {
         result[pair.first] += pair.second;
-    }
+    });
     return result;
 };
 
@@ -159,14 +153,15 @@ auto mapCalculateTermDensity = [](const vector<string> &words, const map<string,
     set<string> termSet(termList.begin(), termList.end()); // Convert termList to a set for faster lookup
     vector<pair<string, double>> mappedResults;
 
-    for (const string &word : words)
+    for_each(words.begin(), words.end(), [&](auto word)
     {
         auto termIt = termCount.find(word);
         if (termIt != termCount.end() && termSet.find(word) != termSet.end())
         {
             mappedResults.push_back({word, 1.0 / windowSize});
         }
-    }
+    });
+
     return mappedResults;
 };
 
@@ -174,13 +169,14 @@ auto mapCalculateTermDensity = [](const vector<string> &words, const map<string,
 auto reduceCalculateTermDensity = [](const vector<pair<string, double>> &mappedResults) -> map<string, double>
 {
     map<string, double> result;
-    for (const auto &pair : mappedResults)
+    for_each(mappedResults.begin(), mappedResults.end(), [&](auto pair)
     {
         result[pair.first] += pair.second;
-    }
+    });
     return result;
 };
 
+/*
 auto calculateTermDensity = [](const vector<string> &words, const map<string, int> &termCount, const int windowSize)
 {
     const int numThreads = 4; // Adjust threads as needed.
@@ -238,33 +234,15 @@ auto calculateSingleTermDensity = [](const string &word, const map<string, int> 
         return 0.0;
     }
 };
-
+*/
 auto printResults = [](const vector<string> &results)
 {
     int i = 1;
     for_each(results.begin(), results.end(), [&i](auto chapter)
-             {
+    {
         cout << "Chapter " << i << ": " << chapter << endl;
-        ++i; });
-};
-
-=======
-// calculates term density for each term using singleTermDesnity and store res in termDensity map
-auto calculateTermDensity = [](const vector<string>& words, const map<string, int>& termCount, const int windowSize) {
-    map<string, double> termDensity;
-
-    transform(words.begin(), words.end(), inserter(termDensity, termDensity.begin()),
-              [&termCount, windowSize](const string& word) {
-                  return make_pair(word, calculateSingleTermDensity(word, termCount, windowSize)); // making the pair for each term with density
-              });
- 
-    return termDensity; // returns map with term and its density
-};
-
-// wrapper that combines term count calculation and term density calculation
-auto calculateTermDensityWrapper = [](const vector<string>& words, const vector<string>& termList, const int windowSize) {
-    map<string, int> termCount = countTermOccurrences(words, termList); // obtain term count
-    return calculateTermDensity(words, termCount, windowSize); // return density
+        ++i; 
+    });
 };
 
 int main()
@@ -289,7 +267,7 @@ int main()
 
     vector<string> chapterCategories;
 
-    for (const auto &chapter : chapters)
+    for_each(chapters.begin(), chapters.end(), [&](auto chapter)
     {
         // Step 8: Map
         auto mappedWarTermDensity = mapCalculateTermDensity(chapter, termCount, windowSize, warTerms);
@@ -315,7 +293,8 @@ int main()
         {
             chapterCategories.push_back("peace-related");
         }
-    }
+    });
+
     // Step 10: Print results
     printResults(chapterCategories);
 
