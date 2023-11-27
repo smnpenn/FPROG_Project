@@ -7,8 +7,11 @@
 #include <cstring>
 #include <map>
 #include <numeric>
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#include <future>
+#include <set>
 #include "doctest.h"
+#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+
 
 using namespace std;
 
@@ -119,7 +122,6 @@ auto splitIntoChapters = [](const vector<string> bookContent)
     return chapters;
 };
 
-// Task 5: Map function for counting occurrences
 auto mapCountOccurrences = [](const vector<string> &words) -> vector<pair<string, int>>
 {
     vector<pair<string, int>> mappedResults;
@@ -170,6 +172,7 @@ auto reduceCalculateTermDensity = [](const vector<pair<string, double>> &mappedR
     return result;
 };
 
+
 TEST_CASE("Read file"){
 
     string filename = "./textfiles/test.txt";
@@ -205,5 +208,57 @@ TEST_CASE("Split into chapters"){
     auto chapters = splitIntoChapters(readFileAsVector("./textfiles/war_and_peace.txt"));
 
     CHECK_EQ(chapters.size(), 365);
+}
+
+TEST_CASE("Map count occurrences") {
+    vector<string> words = {"apple", "banana", "apple", "orange", "banana", "apple"};
+    
+    auto mappedResults = mapCountOccurrences(words);
+
+    CHECK_EQ(mappedResults.size(), 6);
+    CHECK_EQ(mappedResults[0], make_pair("apple", 1));
+    CHECK_EQ(mappedResults[1], make_pair("banana", 1));
+    CHECK_EQ(mappedResults[2], make_pair("apple", 1));
+    CHECK_EQ(mappedResults[3], make_pair("orange", 1));
+    CHECK_EQ(mappedResults[4], make_pair("banana", 1));
+    CHECK_EQ(mappedResults[5], make_pair("apple", 1));
+}
+
+TEST_CASE("Reduce count occurrences") {
+    vector<pair<string, int>> mappedResults = {{"apple", 1}, {"banana", 1}, {"apple", 1}, {"orange", 1}, {"banana", 1}, {"apple", 1}};
+    
+    auto result = reduceCountOccurrences(mappedResults);
+
+    CHECK_EQ(result.size(), 3);
+    CHECK_EQ(result["apple"], 3);
+    CHECK_EQ(result["banana"], 2);
+    CHECK_EQ(result["orange"], 1);
+}
+
+TEST_CASE("Map calculate term density") {
+    vector<string> words = {"apple", "banana", "apple", "orange", "banana", "apple"};
+    map<string, int> termCount = {{"apple", 3}, {"banana", 2}, {"orange", 1}};
+    vector<string> termList = {"apple", "banana"};
+
+    auto mappedResults = mapCalculateTermDensity(words, termCount, 5, termList);
+
+    CHECK_EQ(mappedResults.size(), 6);
+    CHECK_EQ(mappedResults[0], make_pair("apple", 0.2));
+    CHECK_EQ(mappedResults[1], make_pair("banana", 0.2));
+    CHECK_EQ(mappedResults[2], make_pair("apple", 0.2));
+    CHECK_EQ(mappedResults[3], make_pair("orange", 0));
+    CHECK_EQ(mappedResults[4], make_pair("banana", 0.2));
+    CHECK_EQ(mappedResults[5], make_pair("apple", 0.2));
+}
+
+TEST_CASE("Reduce calculate term density") {
+    vector<pair<string, double>> mappedResults = {{"apple", 0.2}, {"banana", 0.2}, {"apple", 0.2}, {"orange", 0}, {"banana", 0.2}, {"apple", 0.2}};
+
+    auto result = reduceCalculateTermDensity(mappedResults);
+
+    CHECK_EQ(result.size(), 3);
+    CHECK_EQ(result["apple"], 0.6);
+    CHECK_EQ(result["banana"], 0.4);
+    CHECK_EQ(result["orange"], 0);
 }
 
